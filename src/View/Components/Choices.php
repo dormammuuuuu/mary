@@ -198,7 +198,7 @@ class Choices extends Component
 
                             {{
                                 $attributes->except(['wire:model', 'wire:model.live'])->class([
-                                    "select select-bordered select-primary w-full h-fit pr-16 pb-1 pt-1.5 inline-block cursor-pointer relative flex-1",
+                                    "select select-bordered select-primary w-full h-fit pr-16 pb-1 pt-1.5 inline-block cursor-pointer relative flex-1 primary-choices",
                                     'border border-dashed' => $isReadonly(),
                                     'select-error' => $errors->has($modelName()),
                                     'rounded-l-none' => $prepend,
@@ -225,7 +225,7 @@ class Choices extends Component
                                     </div>
                                 @else
                                     <template x-for="(option, index) in selectedOptions" :key="index">
-                                        <div class="mary-choices-element bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/20 dark:hover:bg-primary/40 dark:text-inherit px-2 mr-2 mt-0.5 mb-1.5 last:mr-0 inline-block rounded cursor-pointer">
+                                        <div class="mary-choices-element bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/20 dark:hover:bg-primary/40 dark:text-inherit px-2 primary-select-input mr-2 mt-0.5 mb-1.5 last:mr-0 inline-block rounded cursor-pointer">
                                             <!-- SELECTION SLOT -->
                                              @if($selection)
                                                 <span x-html="document.getElementById('selection-{{ $uuid . '-\' + option.'. $optionValue }}).innerHTML"></span>
@@ -248,7 +248,7 @@ class Choices extends Component
                                 :required="isRequired && isSelectionEmpty"
                                 :readonly="isReadonly || ! isSearchable"
                                 :class="(isReadonly || !isSearchable || !focused) && '!w-1'"
-                                class="outline-none mt-0.5 bg-transparent w-20"
+                                class="outline-none mt-0.5 bg-transparent w-20 primary-choices-input"
 
                                 @if($searchable)
                                     @keydown.debounce.{{ $debounce }}="search($el.value)"
