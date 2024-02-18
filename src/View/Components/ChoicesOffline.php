@@ -195,7 +195,7 @@ class ChoicesOffline extends Component
 
                             {{
                                 $attributes->except(['wire:model', 'wire:model.live'])->class([
-                                    "select select-bordered select-primary w-full h-fit pr-16 pb-1 pt-1.5 inline-block cursor-pointer relative",
+                                    "select select-bordered select-primary w-full pr-16 pb-1 pt-1.5 inline-block cursor-pointer relative primary-choices",
                                     'border border-dashed' => $isReadonly(),
                                     'select-error' => $errors->has($modelName()),
                                     'rounded-l-none' => $prepend,
@@ -222,16 +222,16 @@ class ChoicesOffline extends Component
                                     </div>
                                 @else
                                     <template x-for="(option, index) in selectedOptions" :key="index">
-                                        <div class="mary-choices-element bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/20 dark:hover:bg-primary/40 dark:text-inherit px-2 mr-2 mt-0.5 mb-1.5 last:mr-0 inline-block rounded cursor-pointer">
-                                            <!-- SELECTION SLOT -->
-                                             @if($selection)
-                                                <span x-html="document.getElementById('selection-{{ $uuid . '-\' + option.'. $optionValue }}).innerHTML"></span>
-                                             @else
-                                                <span x-text="option.{{ $optionLabel }}"></span>
-                                             @endif
+                                            <div class="mary-choices-element bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/20 dark:hover:bg-primary/40 dark:text-inherit px-2 primary-select-input mr-2 mt-0.5 mb-1.5 last:mr-0 inline-block rounded cursor-pointer">
+                                                <!-- SELECTION SLOT -->
+                                                @if($selection)
+                                                    <span x-html="document.getElementById('selection-{{ $uuid . '-\' + option.'. $optionValue }}).innerHTML"></span>
+                                                @else
+                                                    <span x-text="option.{{ $optionLabel }}"></span>
+                                                @endif
 
-                                            <x-mary-icon @click="toggle(option.{{ $optionValue }})" x-show="!isReadonly && !isSingle" name="o-x-mark" class="text-gray-500 hover:text-red-500" />
-                                        </div>
+                                                <x-mary-icon @click="toggle(option.{{ $optionValue }})" x-show="!isReadonly && !isSingle" name="o-x-mark" class="text-gray-500 hover:text-red-500" />
+                                            </div>
                                     </template>
                                 @endif
                             </span>
@@ -247,7 +247,7 @@ class ChoicesOffline extends Component
                                 :required="isRequired && isSelectionEmpty"
                                 :readonly="isReadonly || ! isSearchable"
                                 :class="(isReadonly || !isSearchable || !focused) && '!w-1'"
-                                class="outline-none mt-0.5 bg-transparent w-20"
+                                class="primary-choices-input !outline-none bg-transparent w-20 mt-0.5"
                              />
                         </div>
 
