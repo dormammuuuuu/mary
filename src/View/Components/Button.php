@@ -81,7 +81,7 @@ class Button extends Component
                     <!-- ICON -->
                     @if($icon)
                         <span class="block" @if($spinner) wire:loading.class="hidden" wire:target="{{ $spinnerTarget() }}" @endif>
-                            <x-mary-icon :name="$icon" />
+                            <x-mary-icon :name="$icon" class="!h-3.5 !w-3.5 !block"/>
                         </span>
                     @endif
 
@@ -90,7 +90,7 @@ class Button extends Component
                         <span @class(["hidden lg:block" => $responsive ])>
                             {{ $label }}
                         </span>
-                        @if(strlen($badge ?? '') > 0)
+                        @if(strlen($badge))
                             <span class="badge badge-primary {{ $badgeClasses }}">{{ $badge }}</span>
                         @endif
                     @else
