@@ -14,6 +14,8 @@ class Modal extends Component
         public ?string $subtitle = null,
         public ?bool $separator = false,
         public ?bool $persistent = false,
+        public ?string $modalClass = '',
+        public ?string $actionClass = '',
 
         // Slots
         public ?string $actions = null
@@ -38,11 +40,12 @@ class Modal extends Component
                         @endif
                     @endif
                 >
-                    <div class="modal-box">
+                    <div class="modal-box {{ $modalClass }}">
+                        
                         @if($title)
                             <x-mary-header :title="$title" :subtitle="$subtitle" size="text-2xl" :separator="$separator" class="mb-5" />
                         @endif
-
+                        
                         <p class="">
                             {{ $slot }}
                         </p>
@@ -52,7 +55,7 @@ class Modal extends Component
                         @endif
 
                         @if($actions)
-                            <div class="modal-action">
+                            <div class="modal-action {{ $actionClass }}">
                                 {{ $actions }}
                             </div>
                         @endif
