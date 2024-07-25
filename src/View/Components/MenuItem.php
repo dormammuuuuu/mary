@@ -16,12 +16,14 @@ class MenuItem extends Component
         public ?string $title = null,
         public ?string $icon = null,
         public ?string $link = null,
+        public ?string $route = null,
         public ?bool $external = false,
         public ?bool $noWireNavigate = false,
         public ?string $badge = null,
         public ?string $badgeClasses = null,
         public ?bool $active = false,
-        public ?bool $separator = false
+        public ?bool $separator = false,
+        public ?bool $enabled = true,
     ) {
         $this->uuid = "mary" . md5(serialize($this));
     }
@@ -30,6 +32,10 @@ class MenuItem extends Component
     {
         if ($this->link == null) {
             return false;
+        }
+
+        if ($this->route) {
+            return request()->routeIs($this->route);
         }
 
         $link = url($this->link ?? '');
@@ -44,6 +50,10 @@ class MenuItem extends Component
 
     public function render(): View|Closure|string
     {
+        if ($this->enabled === false) {
+            return '';
+        }
+
         return <<<'HTML'
                 @aware(['activateByRoute' => false, 'activeBgColor' => 'bg-base-300'])
 
@@ -72,7 +82,7 @@ class MenuItem extends Component
                             <x-mary-icon :name="$icon" />
                         @endif
 
-                        <span class="mary-hideable whitespace-nowrap">
+                        <span class="mary-hideable whitespace-nowrap truncate">
                             @if($title)
                                 {{ $title }}
 

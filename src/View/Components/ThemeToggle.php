@@ -14,6 +14,8 @@ class ThemeToggle extends Component
         public ?string $value = null,
         public ?string $light = "Light",
         public ?string $dark = "Dark",
+        public ?string $lightTheme = "light",
+        public ?string $darkTheme = "dark",
         public ?bool $withLabel = false,
 
     ) {
@@ -26,20 +28,24 @@ class ThemeToggle extends Component
                 <div>
                     <label
                         x-data="{
-                            theme: $persist('light').as('mary-theme'),
+                            theme: $persist(window.matchMedia('(prefers-color-scheme: dark)').matches ? '{{ $darkTheme }}' : '{{ $lightTheme }}').as('mary-theme'),
                             init() {
-                                if (this.theme == 'dark') {
+                                if (this.theme == '{{ $darkTheme }}') {
                                     this.$refs.sun.classList.add('swap-off');
                                     this.$refs.sun.classList.remove('swap-on');
                                     this.$refs.moon.classList.add('swap-on');
                                     this.$refs.moon.classList.remove('swap-off');
                                 }
+                                this.setToggle()
                             },
-                            toggle() {
-                                this.theme = this.theme == 'light' ? 'dark' : 'light'
+                            setToggle() {
                                 document.documentElement.setAttribute('data-theme', this.theme)
                                 document.documentElement.setAttribute('class', this.theme)
                                 this.$dispatch('theme-changed', this.theme)
+                            },
+                            toggle() {
+                                this.theme = this.theme == '{{ $lightTheme }}' ? '{{ $darkTheme }}' : '{{ $lightTheme }}'
+                                this.setToggle()
                             }
                         }"
                         @mary-toggle-theme.window="toggle()"

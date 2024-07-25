@@ -9,20 +9,32 @@ use Illuminate\View\Component;
 class Editor extends Component
 {
     public string $uuid;
+    public string $uploadUrl;
 
     public function __construct(
         public ?string $label = null,
         public ?string $hint = null,
         public ?string $disk = 'public',
         public ?string $folder = 'editor',
-        public ?array $config = []
+        public ?array $config = [],
+        // Validations
+        public ?string $errorField = null,
+        public ?string $errorClass = 'text-red-500 label-text-alt p-1',
+        public ?bool $omitError = false,
+        public ?bool $firstErrorOnly = false,
     ) {
         $this->uuid = "mary" . md5(serialize($this));
+        $this->uploadUrl = route('mary.upload', absolute: false);
     }
 
     public function modelName(): ?string
     {
-        return $this->attributes->wire('model');
+        return $this->attributes->whereStartsWith('wire:model')->first();
+    }
+
+    public function errorFieldName(): ?string
+    {
+        return $this->errorField ?? $this->modelName();
     }
 
     public function setup(): string
@@ -66,7 +78,7 @@ class Editor extends Component
                         x-data="
                             {
                                 value: @entangle($attributes->wire('model')),
-                                uploadUrl: '/mary/upload?disk={{ $disk }}&folder={{ $folder }}&_token={{ csrf_token() }}'
+                                uploadUrl: '{{ $uploadUrl }}?disk={{ $disk }}&folder={{ $folder }}&_token={{ csrf_token() }}'
                             }"
                         x-init="
                             tinymce.init({
@@ -82,6 +94,7 @@ class Editor extends Component
                                 @endif
 
                                 setup: function(editor) {
+                                    editor.on('keyup', (e) => value = editor.getContent())
                                     editor.on('change', (e) => value = editor.getContent())
                                     editor.on('init', () =>  editor.setContent(value ?? ''))
                                     editor.on('OpenWindow', (e) => tinymce.activeEditor.topLevelWindow = e.dialog)
@@ -114,13 +127,19 @@ class Editor extends Component
                     </div>
 
                     <!-- ERROR -->
-                    @error($modelName())
-                        <div class="text-red-500 label-text-alt p-1">{{ $message }}</div>
-                    @enderror
+                    @if(!$omitError && $errors->has($errorFieldName()))
+                        @foreach($errors->get($errorFieldName()) as $message)
+                            @foreach(Arr::wrap($message) as $line)
+                                <div class="{{ $errorClass }}" x-classes="text-red-500 label-text-alt p-1">{{ $line }}</div>
+                                @break($firstErrorOnly)
+                            @endforeach
+                            @break($firstErrorOnly)
+                        @endforeach
+                    @endif
 
                     <!-- HINT -->
                     @if($hint)
-                        <div class="label-text-alt text-gray-400 pl-1 mt-2">{{ $hint }}</div>
+                        <div class="label-text-alt text-gray-400 ps-1 mt-2">{{ $hint }}</div>
                     @endif
                 </div>
             HTML;

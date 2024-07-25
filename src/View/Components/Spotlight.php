@@ -14,11 +14,13 @@ class Spotlight extends Component
         public ?string $shortcut = "meta.g",
         public ?string $searchText = "Search ...",
         public ?string $noResultsText = "Nothing found.",
+        public ?string $url = null,
 
         // Slots
         public mixed $append = null
     ) {
         $this->uuid = "mary" . md5(serialize($this));
+        $this->url = $this->url ?? route('mary.spotlight', absolute: false);
     }
 
     public function render(): View|Closure|string
@@ -96,7 +98,7 @@ class Spotlight extends Component
                                     this.controller?.abort()
                                     this.controller = new AbortController();
 
-                                    let response = await fetch(`/mary/spotlight?search=${this.value}&${this.query}`, { signal: this.controller.signal })
+                                    let response = await fetch(`{{$url}}?search=${this.value}&${this.query}`, { signal: this.controller.signal })
                                     this.results = await response.json()
                                 } catch(e) {
                                     console.log(e)
@@ -118,7 +120,7 @@ class Spotlight extends Component
                     @mary-search.window="updateQuery(event.detail)"
                     @mary-search-open.window="show(); focus();"
                 >
-                    <x-modal id="marySpotlight" x-ref="marySpotlightRef" class="backdrop-blur-sm">
+                    <x-mary-modal id="marySpotlight" x-ref="marySpotlightRef" class="backdrop-blur-sm">
                         <div class="-mx-5 -mt-5 -mb-10" @click.outside="close()" @keydown.enter="close()">
                             <!-- INPUT -->
                             <div class="flex">

@@ -13,14 +13,18 @@ class File extends Component
     public function __construct(
         public ?string $label = null,
         public ?string $hint = null,
-        public ?bool $hideErrors = false,
         public ?bool $hideProgress = false,
         public ?bool $cropAfterChange = false,
         public ?string $changeText = "Change",
         public ?string $cropTitleText = "Crop image",
         public ?string $cropCancelText = "Cancel",
         public ?string $cropSaveText = "Crop",
-        public ?array $cropConfig = []
+        public ?array $cropConfig = [],
+        // Validations
+        public ?string $errorField = null,
+        public ?string $errorClass = 'text-red-500 label-text-alt p-1',
+        public ?bool $omitError = false,
+        public ?bool $firstErrorOnly = false,
 
     ) {
         $this->uuid = "mary" . md5(serialize($this));
@@ -28,7 +32,12 @@ class File extends Component
 
     public function modelName(): ?string
     {
-        return $this->attributes->wire('model');
+        return $this->attributes->whereStartsWith('wire:model')->first();
+    }
+
+    public function errorFieldName(): ?string
+    {
+        return $this->errorField ?? $this->modelName();
     }
 
     public function cropSetup(): string
@@ -179,7 +188,7 @@ class File extends Component
                                 x-cloak
                                 :style="`--value:${progress}; --size:1.5rem; --thickness: 4px;`"
                                 :class="!processing && 'hidden'"
-                                class="radial-progress text-success absolute top-5 left-5 bg-neutral"
+                                class="radial-progress text-success absolute top-5 start-5 bg-neutral"
                                 role="progressbar"
                             ></div>
                         </div>
@@ -197,17 +206,20 @@ class File extends Component
                     @endif
 
                     <!-- ERROR -->
-                    @if (! $hideErrors)
-                        <!-- SINGLE -->
-                        @error($modelName())
-                            <div class="text-red-500 label-text-alt p-1 pt-2">{{ $message }}</div>
-                        @enderror
-
-                        <!-- MULTIPLE -->
-                        @error($modelName().'.*')
-                            <div class="text-red-500 label-text-alt p-1 pt-2">{{ $message }}</div>
-                        @enderror
+                    @if(!$omitError && $errors->has($errorFieldName()))
+                        @foreach($errors->get($errorFieldName()) as $message)
+                            @foreach(Arr::wrap($message) as $line)
+                                <div class="{{ $errorClass }}" x-classes="text-red-500 label-text-alt p-1">{{ $line }}</div>
+                                @break($firstErrorOnly)
+                            @endforeach
+                            @break($firstErrorOnly)
+                        @endforeach
                     @endif
+
+                    <!-- MULTIPLE -->
+                    @error($modelName().'.*')
+                        <div class="text-red-500 label-text-alt p-1 pt-2">{{ $message }}</div>
+                    @enderror
 
                     <!-- HINT -->
                     @if($hint)

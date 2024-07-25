@@ -3,26 +3,26 @@
 namespace Mary\View\Components;
 
 use Closure;
-use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
 use Illuminate\View\Component;
+use Illuminate\Contracts\View\View;
 
-class Radio extends Component
+class Range extends Component
 {
+
     public string $uuid;
 
     public function __construct(
         public ?string $label = null,
         public ?string $hint = null,
-        public ?string $optionValue = 'id',
-        public ?string $optionLabel = 'name',
-        public Collection|array $options = new Collection(),
+        public ?int $min = 0,
+        public ?int $max = 100,
         // Validations
         public ?string $errorField = null,
         public ?string $errorClass = 'text-red-500 label-text-alt p-1',
         public ?bool $omitError = false,
         public ?bool $firstErrorOnly = false,
-    ) {
+    )
+    {
         $this->uuid = "mary" . md5(serialize($this));
     }
 
@@ -40,6 +40,7 @@ class Radio extends Component
     {
         return <<<'HTML'
                 <div>
+                    <!-- Label -->
                     @if($label)
                         <label for="{{ $uuid }}" class="pt-0 label label-text font-semibold">
                             <span>
@@ -52,24 +53,14 @@ class Radio extends Component
                         </label>
                     @endif
 
-                    <div class="join">
-                        @foreach ($options as $option)
-                            <input
-                                type="radio"
-                                name="{{ $modelName() }}"
-                                value="{{ data_get($option, $optionValue) }}"
-                                aria-label="{{ data_get($option, $optionLabel) }}"
-                                @if(data_get($option, 'disabled')) disabled @endif
-                                {{ $attributes->whereStartsWith('wire:model') }}
-                                {{
-                                    $attributes->class([
-                                        "join-item capitalize btn input-bordered input bg-base-200",
-                                        "border !input-bordered" => data_get($option, 'disabled')
-                                    ])
-                                }}
-                                />
-                        @endforeach
-                    </div>
+                    <!-- Range -->
+                    <input
+                        type="range"
+                        min="{{ $min }}"
+                        max="{{ $max }}"
+                        {{ $attributes->merge(["class" => "range"])->except('label', 'hint', 'min', 'max') }}
+                    />
+
                     <!-- ERROR -->
                     @if(!$omitError && $errors->has($errorFieldName()))
                         @foreach($errors->get($errorFieldName()) as $message)
@@ -81,8 +72,9 @@ class Radio extends Component
                         @endforeach
                     @endif
 
+                    <!-- HINT -->
                     @if($hint)
-                        <div class="label-text-alt text-gray-400 ps-1 mt-2">{{ $hint }}</div>
+                        <div class="label-text-alt text-gray-400 p-1 pb-0">{{ $hint }}</div>
                     @endif
                 </div>
             HTML;

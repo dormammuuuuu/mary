@@ -25,7 +25,7 @@ class MaryInstallCommand extends Command
         // Install Volt ?
         $shouldInstallVolt = $this->askForVolt();
 
-        //Yarn or Npm ?
+        //Yarn or Npm or Bun or Pnpm ?
         $packageManagerCommand = $this->askForPackageInstaller();
 
         // Install Livewire/Volt
@@ -43,7 +43,8 @@ class MaryInstallCommand extends Command
         // Clear view cache
         Artisan::call('view:clear');
 
-        $this->info("\n✅   Done! Run `yarn dev` or `npm run dev`");
+        $this->info("\n");
+        $this->info("✅  Done! Run `yarn dev` or `npm run dev` or `bun run dev` or `pnpm dev`");
         $this->info("🌟  Give it a star: https://github.com/robsontenorio/mary");
         $this->info("❤️  Sponsor this project: https://github.com/sponsors/robsontenorio\n");
     }
@@ -164,15 +165,19 @@ class MaryInstallCommand extends Command
      */
     public function copyStubs(string $shouldInstallVolt): void
     {
-        $routes = base_path() . "{$this->ds}routes";
+        $composerJson = File::get(base_path() . "/composer.json");
+        $hasKit = str($composerJson)->contains('jetstream') || str($composerJson)->contains('breeze');
 
-        // If there is something in there, skip stubs
-        if (count(file("$routes{$this->ds}web.php")) > 20) {
+        if ($hasKit) {
+            $this->warn('---------------------------------------------');
+            $this->warn('🚨 Starter kit detected. Skipping demo components. 🚨');
+            $this->warn('---------------------------------------------');
             return;
         }
 
         $this->info("Copying stubs...\n");
 
+        $routes = base_path() . "{$this->ds}routes";
         $appViewComponents = "app{$this->ds}View{$this->ds}Components";
         $livewirePath = "app{$this->ds}Livewire";
         $layoutsPath = "resources{$this->ds}views{$this->ds}components{$this->ds}layouts";
@@ -209,6 +214,8 @@ class MaryInstallCommand extends Command
 
         $yarn = Process::run($findCommand . ' yarn')->output();
         $npm = Process::run($findCommand . ' npm')->output();
+        $bun = Process::run($findCommand . ' bun')->output();
+        $pnpm = Process::run($findCommand . ' pnpm')->output();
 
         $options = [];
 
@@ -220,8 +227,16 @@ class MaryInstallCommand extends Command
             $options = array_merge($options, ['npm install --save-dev' => 'npm']);
         }
 
+        if (Str::of($bun)->isNotEmpty()) {
+            $options = array_merge($options, ['bun i -D' => 'bun']);
+        }
+
+        if (Str::of($pnpm)->isNotEmpty()) {
+            $options = array_merge($options, ['pnpm i -D' => 'pnpm']);
+        }
+
         if (count($options) == 0) {
-            $this->error("You need yarn or npm installed.");
+            $this->error("You need yarn or npm or bun or pnpm installed.");
 
             exit;
         }

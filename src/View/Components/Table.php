@@ -27,6 +27,8 @@ class Table extends Component
         public ?string $expandableKey = 'id',
         public ?string $link = null,
         public ?bool $withPagination = false,
+        public ?string $perPage = null,
+        public ?array $perPageValues = [10, 20, 50, 100],
         public ?array $sortBy = [],
         public ?array $rowDecoration = [],
         public ?array $cellDecoration = [],
@@ -72,6 +74,12 @@ class Table extends Component
     public function isSortable(mixed $header): bool
     {
         return count($this->sortBy) && ($header['sortable'] ?? true);
+    }
+
+    // Check if header is hidden
+    public function isHidden(mixed $header): bool
+    {
+        return $header['hidden'] ?? false;
     }
 
     // Check if is currently sorted by this header
@@ -144,28 +152,63 @@ class Table extends Component
         return Arr::join($classes, ' ');
     }
 
+    public function selectableModifier(): string
+    {
+        return is_string($this->getAllIds()[0] ?? null) ? "" : ".number";
+    }
+
     public function render(): View|Closure|string
     {
         return <<<'HTML'
                 <div x-data="{
                                 selection: @entangle($attributes->wire('model')),
+                                pageIds: {{ json_encode($getAllIds()) }},
+                                isSelectable: {{ json_encode($selectable) }},
                                 colspanSize: 0,
-                                toggleSelection(checked){
-                                    checked ? this.selection = @js($getAllIds()) : this.selection = []
+                                init() {
+                                    this.colspanSize = $refs.headers.childElementCount
+
+                                    if (this.isSelectable) {
+                                        this.handleCheckAll()
+                                    }
                                 },
-                                toggleExpand(key){
+                                isExpanded(key) {
+                                    return this.selection.includes(key)
+                                },
+                                isPageFullSelected() {
+                                    return [...this.selection]
+                                                .sort((a, b) => b - a)
+                                                .toString()
+                                                .includes([...this.pageIds].sort((a, b) => b - a).toString())
+                                },
+                                toggleCheck(checked, content) {
+                                    this.$dispatch('row-selection', { row: content, selected: checked });
+                                    this.handleCheckAll()
+                                },
+                                toggleCheckAll(checked) {
+                                    checked ? this.pushIds() : this.removeIds()
+                                },
+                                toggleExpand(key) {
                                      this.selection.includes(key)
                                         ? this.selection = this.selection.filter(i => i !== key)
                                         : this.selection.push(key)
                                 },
-                                isExpanded(key){
-                                    return this.selection.includes(key)
+                                pushIds() {
+                                    this.selection.push(...this.pageIds.filter(i => !this.selection.includes(i)))
                                 },
-                                init() {
-                                    this.colspanSize = $refs.headers.childElementCount
+                                removeIds() {
+                                    this.selection =  this.selection.filter(i => !this.pageIds.includes(i) )
+                                },
+                                handleCheckAll() {
+                                    this.$nextTick(() => {
+                                            this.isPageFullSelected()
+                                                ? this.$refs.mainCheckbox.checked = true
+                                                : this.$refs.mainCheckbox.checked = false
+                                        })
                                 }
                              }"
-                                class="overflow-x-auto"
+
+                     class="overflow-x-auto"
                 >
                     <table
                         {{
@@ -181,14 +224,14 @@ class Table extends Component
                         <!-- HEADERS -->
                         <thead @class(["text-black dark:text-gray-200", "hidden" => $noHeaders])>
                             <tr x-ref="headers">
-                                <!-- CHECKBOX -->
+                                <!-- CHECKALL -->
                                 @if($selectable)
-                                    <th class="w-1">
+                                    <th class="w-1" wire:key="{{ $uuid }}-checkall-{{ implode(',', $getAllIds()) }}">
                                         <input
                                             type="checkbox"
                                             class="checkbox checkbox-sm"
                                             x-ref="mainCheckbox"
-                                            @click="toggleSelection($el.checked)" />
+                                            @click="toggleCheckAll($el.checked)" />
                                     </th>
                                 @endif
 
@@ -199,6 +242,9 @@ class Table extends Component
 
                                 @foreach($headers as $header)
                                      @php
+                                        # SKIP THE HIDDEN COLUMN
+                                        if($isHidden($header)) continue;
+
                                         # Scoped slot`s name like `user.city` are compiled to `user___city` through `@scope / @endscope`.
                                         # So we use current `$header` key  to find that slot on context.
                                         $temp_key = str_replace('.', '___', $header['key'])
@@ -229,12 +275,13 @@ class Table extends Component
                         <!-- ROWS -->
                         <tbody>
                             @foreach($rows as $k => $row)
-                                @php
-                                    # helper variable to provide the loop context
-                                    $this->loop = $loop;
-                                @endphp
-
-                                <tr wire:key="{{ $uuid }}-{{ $k }}" class="hover:bg-base-200/50 {{ $rowClasses($row) }}" @click="$dispatch('row-click', {{ json_encode($row) }});">
+                                <tr
+                                    wire:key="{{ $uuid }}-{{ $k }}"
+                                    class="hover:bg-base-200/50 {{ $rowClasses($row) }}"
+                                    @if($attributes->has('@row-click'))
+                                        @click="$dispatch('row-click', {{ json_encode($row) }});"
+                                    @endif
+                                >
                                     <!-- CHECKBOX -->
                                     @if($selectable)
                                         <td class="w-1">
@@ -242,14 +289,14 @@ class Table extends Component
                                                 type="checkbox"
                                                 class="checkbox checkbox-sm checkbox-primary"
                                                 value="{{ data_get($row, $selectableKey) }}"
-                                                x-model="selection"
-                                                @click="$dispatch('row-selection', { row: {{ json_encode($row) }}, selected: $el.checked }); $refs.mainCheckbox.checked = false" />
+                                                x-model{{ $selectableModifier() }}="selection"
+                                                @click="toggleCheck($el.checked, {{ json_encode($row) }})" />
                                         </td>
                                     @endif
 
                                     <!-- EXPAND ICON -->
                                     @if($expandable)
-                                        <td class="w-1 pr-0">
+                                        <td class="w-1 pe-0">
                                             <x-mary-icon
                                                 name="o-chevron-down"
                                                 ::class="isExpanded({{ data_get($row, $expandableKey) }}) || '-rotate-90 !text-current !bg-base-200'"
@@ -261,6 +308,9 @@ class Table extends Component
                                     <!--  ROW VALUES -->
                                     @foreach($headers as $header)
                                         @php
+                                            # SKIP THE HIDDEN COLUMN
+                                            if($isHidden($header)) continue;
+
                                             # Scoped slot`s name like `user.city` are compiled to `user___city` through `@scope / @endscope`.
                                             # So we use current `$header` key  to find that slot on context.
                                             $temp_key = str_replace('.', '___', $header['key'])
@@ -270,7 +320,7 @@ class Table extends Component
                                         @if(isset(${"cell_".$temp_key}))
                                             <td @class([$cellClasses($row, $header), "p-0" => $link])>
                                                 @if($link)
-                                                    <a href="{{ $redirectLink($row) }}" wire:navigate class="block p-4">
+                                                    <a href="{{ $redirectLink($row) }}" wire:navigate class="block py-3 px-4">
                                                 @endif
 
                                                 {{ ${"cell_".$temp_key}($row)  }}
@@ -282,7 +332,7 @@ class Table extends Component
                                         @else
                                             <td @class([$cellClasses($row, $header), "p-0" => $link])>
                                                 @if($link)
-                                                    <a href="{{ $redirectLink($row) }}" wire:navigate class="block p-4">
+                                                    <a href="{{ $redirectLink($row) }}" wire:navigate class="block py-3 px-4">
                                                 @endif
 
                                                 {{ data_get($row, $header['key']) }}
@@ -296,7 +346,7 @@ class Table extends Component
 
                                     <!-- ACTIONS -->
                                     @if($actions)
-                                        <td class="text-right" @click="event.stopPropagation()">{{ $actions($row) }}</td>
+                                        <td class="text-right py-0">{{ $actions($row) }}</td>
                                     @endif
                                 </tr>
 
@@ -314,11 +364,11 @@ class Table extends Component
 
                     <!-- Pagination -->
                     @if($withPagination)
-                        <div class="mary-table-pagination">
-                            <div class="border border-x-0 border-t-0 border-b-1 border-b-base-300 mb-5"></div>
-
-                            {{ $rows->onEachSide(1)->links(data: ['scrollTo' => false])  }}
-                        </div>
+                        @if($perPage)
+                            <x-mary-pagination :rows="$rows" :per-page-values="$perPageValues" wire:model.live="{{ $perPage }}" />                          
+                        @else 
+                            <x-mary-pagination :rows="$rows" :per-page-values="$perPageValues" />
+                        @endif 
                     @endif
                 </div>
             HTML;

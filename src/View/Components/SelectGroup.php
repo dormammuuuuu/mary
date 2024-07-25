@@ -7,7 +7,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\View\Component;
 
-class Select extends Component
+class SelectGroup extends Component
 {
     public string $uuid;
 
@@ -100,8 +100,11 @@ class Select extends Component
                             <option value="{{ $placeholderValue }}">{{ $placeholder }}</option>
                         @endif
 
-                        @foreach ($options as $option)
-                            <option value="{{ data_get($option, $optionValue) }}" @if(data_get($option, 'disabled')) disabled @endif>{{ data_get($option, $optionLabel) }}</option>
+                        @foreach (array_keys($options) as $option)
+                          <optgroup label="{{ $option }}">
+                            @foreach($options[$option] as $opts)
+                              <option value="{{ $opts[$optionValue] }}">{{ $opts[$optionLabel] }}</option>
+                            @endforeach
                         @endforeach
                     </select>
 
